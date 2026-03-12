@@ -1,0 +1,46 @@
+{
+    "last_run": "2026-03-12 21:41:54",
+    "notification_sent": true,
+    "results": [
+        {
+            "name": "Public HTTP Test",
+            "url": "https:\/\/httpbin.org\/get",
+            "status": "UP",
+            "http_code": 200,
+            "response_time": 1108,
+            "error_message": ""
+        },
+        {
+            "name": "API Demo Endpoint",
+            "url": "https:\/\/jsonplaceholder.typicode.com\/posts\/1",
+            "status": "UP",
+            "http_code": 200,
+            "response_time": 1579,
+            "error_message": ""
+        },
+        {
+            "name": "Documentation Site",
+            "url": "https:\/\/developer.mozilla.org",
+            "status": "UP",
+            "http_code": 200,
+            "response_time": 285,
+            "error_message": ""
+        },
+        {
+            "name": "Sample Status Endpoint",
+            "url": "https:\/\/httpstat.us\/200",
+            "status": "DOWN",
+            "http_code": 0,
+            "response_time": 19,
+            "error_message": "TLS connect error: error:0A000438:SSL routines::tlsv1 alert internal error"
+        },
+        {
+            "name": "Simulated Error Endpoint",
+            "url": "https:\/\/httpstat.us\/500",
+            "status": "DOWN",
+            "http_code": 0,
+            "response_time": 23,
+            "error_message": "TLS connect error: error:0A000438:SSL routines::tlsv1 alert internal error"
+        }
+    ]
+}

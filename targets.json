@@ -1,0 +1,24 @@
+{
+  "targets": [
+    {
+      "name": "Public HTTP Test",
+      "url": "https://httpbin.org/get"
+    },
+    {
+      "name": "API Demo Endpoint",
+      "url": "https://jsonplaceholder.typicode.com/posts/1"
+    },
+    {
+      "name": "Documentation Site",
+      "url": "https://developer.mozilla.org"
+    },
+    {
+      "name": "Sample Status Endpoint",
+      "url": "https://httpstat.us/200"
+    },
+    {
+      "name": "Simulated Error Endpoint",
+      "url": "https://httpstat.us/500"
+    }
+  ]
+}

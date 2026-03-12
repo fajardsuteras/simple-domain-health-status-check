@@ -1,0 +1,11 @@
+{
+  "telegram": {
+    "bot_token": "BOT_TOKEN",
+    "chat_id": "CHAT_ID",
+    "message_thread_id": null
+  },
+  "settings": {
+    "request_timeout": 5,
+    "delay_between_check": 300000
+  }
+}
