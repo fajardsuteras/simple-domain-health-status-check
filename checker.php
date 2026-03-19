@@ -22,13 +22,14 @@ date_default_timezone_set("Asia/Jakarta");
    LOAD CONFIG
 ========================= */
 
-$config = json_decode(file_get_contents("configs.json"), true);
-$targetsData = json_decode(file_get_contents("targets.json"), true);
+$config = json_decode(file_get_contents("config_20260312_7f3a9c4d2b8e.json"), true);
+$targetsData = json_decode(file_get_contents("targets_20260312_f19ab83c7d2e.json"), true);
 
 $targets = $targetsData['targets'];
 
 $timeout = $config['settings']['request_timeout'] ?? 5;
 $delay = $config['settings']['delay_between_check'] ?? 200000;
+
 // start running log
 writeLog("Cron job started");
 
@@ -102,6 +103,7 @@ function checkWebsite($url, $timeout)
     ];
 }
 
+
 /* =========================
    FUNCTION WRITE LOG
 ========================= */
@@ -128,9 +130,18 @@ function writeLog($message)
    RUN CHECK
 ========================= */
 
-$results = [];
+/* =========================
+   RUN CHECK & SEND TELEGRAM
+========================= */
 
-$report = "🔎 System Checker Report\n\n";
+$results = [];
+$combinedReport = "🔎 System Checker Report (Batch)\n\n";
+$separateMessage = $config['settings']['separate_message_per_domain'] ?? false;
+
+// Ambil Config Telegram
+$botToken = $config['telegram']['bot_token'];
+$chatId = $config['telegram']['chat_id'];
+$threadId = $config['telegram']['message_thread_id'] ?? null;
 
 foreach ($targets as $target) {
 
@@ -146,18 +157,63 @@ foreach ($targets as $target) {
     ];
 
     $emoji = $result['status'] == "UP" ? "✅" : "❌";
-
-    $report .= $emoji . " " . $target['name'] . "\n";
-    $report .= $target['url'] . "\n";
-    $report .= "Status: " . $result['status'] . "\n";
-
+    
+    // Format pesan untuk satu target
+    $singleReport = $emoji . " " . $target['name'] . "\n";
+    $singleReport .= "URL: " . $target['url'] . "\n";
+    $singleReport .= "Status: " . $result['status'] . " (" . $result['http_code'] . ")\n";
     if ($result['error_message']) {
-        $report .= "Error: " . $result['error_message'] . "\n";
+        $singleReport .= "Error: " . $result['error_message'] . "\n";
+    }
+    $singleReport .= "Response: " . $result['response_time'] . " ms\n";
+
+    if ($separateMessage) {
+        // KIRIM LANGSUNG PER DOMAIN
+        $singleReport .= "\nTime: " . date("H:i:s");
+        sendTelegram($botToken, $chatId, $singleReport, $threadId);
+    } else {
+        // GABUNGKAN KE SATU PESAN BESAR
+        $combinedReport .= $singleReport . "--------------------------\n";
     }
 
-    $report .= "Response: " . $result['response_time'] . " ms\n\n";
-
+    // Jeda antar target (mikrodetik)
     usleep($delay);
+}
+
+/* =========================
+   FINAL SEND (IF BATCH)
+========================= */
+
+if (!$separateMessage) {
+    $combinedReport .= "\nFinal Check: " . date("Y-m-d H:i:s");
+    sendTelegram($botToken, $chatId, $combinedReport, $threadId);
+}
+
+/* =========================
+   HELPER: SEND TELEGRAM FUNCTION
+========================= */
+
+function sendTelegram($token, $chatId, $message, $threadId = null) {
+    $url = "https://api.telegram.org/bot".$token."/sendMessage";
+    $data = [
+        "chat_id" => $chatId,
+        "text" => $message
+    ];
+
+    if ($threadId) {
+        $data["message_thread_id"] = $threadId;
+    }
+
+    $options = [
+        "http" => [
+            "header"  => "Content-type: application/x-www-form-urlencoded\r\n",
+            "method"  => "POST",
+            "content" => http_build_query($data),
+        ],
+    ];
+
+    $context  = stream_context_create($options);
+    return file_get_contents($url, false, $context);
 }
 
 /* =========================
@@ -168,35 +224,35 @@ $timeNow = date("Y-m-d H:i:s");
 
 $report .= "Time: " . $timeNow;
 
-/* =========================
-   SEND TELEGRAM
-========================= */
+// /* =========================
+//   SEND TELEGRAM
+// ========================= */
 
-$botToken = $config['telegram']['bot_token'];
-$chatId = $config['telegram']['chat_id'];
-$threadId = $config['telegram']['message_thread_id'] ?? null;
+// $botToken = $config['telegram']['bot_token'];
+// $chatId = $config['telegram']['chat_id'];
+// $threadId = $config['telegram']['message_thread_id'] ?? null;
 
-$url = "https://api.telegram.org/bot".$botToken."/sendMessage";
+// $url = "https://api.telegram.org/bot".$botToken."/sendMessage";
 
-$data = [
-    "chat_id" => $chatId,
-    "text" => $report
-];
+// $data = [
+//     "chat_id" => $chatId,
+//     "text" => $report
+// ];
 
-if ($threadId) {
-    $data["message_thread_id"] = $threadId;
-}
+// if ($threadId) {
+//     $data["message_thread_id"] = $threadId;
+// }
 
-$options = [
-    "http" => [
-        "header"  => "Content-type: application/x-www-form-urlencoded\r\n",
-        "method"  => "POST",
-        "content" => http_build_query($data),
-    ],
-];
+// $options = [
+//     "http" => [
+//         "header"  => "Content-type: application/x-www-form-urlencoded\r\n",
+//         "method"  => "POST",
+//         "content" => http_build_query($data),
+//     ],
+// ];
 
-$context  = stream_context_create($options);
-file_get_contents($url, false, $context);
+// $context  = stream_context_create($options);
+// file_get_contents($url, false, $context);
 
 /* =========================
    SAVE STATUS
@@ -208,7 +264,7 @@ $status = [
     "results" => $results
 ];
 
-file_put_contents("status.json", json_encode($status, JSON_PRETTY_PRINT));
+file_put_contents("status_4d8e7f2a9b6c1d3.json", json_encode($status, JSON_PRETTY_PRINT));
 
 echo "Checker executed successfully";
 
