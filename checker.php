@@ -29,6 +29,8 @@ $targets = $targetsData['targets'];
 
 $timeout = $config['settings']['request_timeout'] ?? 5;
 $delay = $config['settings']['delay_between_check'] ?? 200000;
+// start running log
+writeLog("Cron job started");
 
 /* =========================
    FUNCTION CHECK WEBSITE
@@ -98,6 +100,28 @@ function checkWebsite($url, $timeout)
         "response_time" => $time,
         "error_message" => $errorMessage
     ];
+}
+
+/* =========================
+   FUNCTION WRITE LOG
+========================= */
+
+function writeLog($message)
+{
+    $logDir = __DIR__ . "/logs";
+
+    if (!is_dir($logDir)) {
+        mkdir($logDir, 0755, true);
+    }
+
+    $date = date("Y-m-d");
+    $logFile = $logDir . "/cron-" . $date . ".log";
+
+    $time = date("Y-m-d H:i:s");
+
+    $line = "[".$time."] ".$message.PHP_EOL;
+
+    file_put_contents($logFile, $line, FILE_APPEND);
 }
 
 /* =========================
