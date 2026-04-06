@@ -22,8 +22,8 @@ date_default_timezone_set("Asia/Jakarta");
    LOAD CONFIG
 ========================= */
 
-$config = json_decode(file_get_contents("config_20260312_7f3a9c4d2b8e.json"), true);
-$targetsData = json_decode(file_get_contents("targets_20260312_f19ab83c7d2e.json"), true);
+$config = json_decode(file_get_contents("configs.json"), true);
+$targetsData = json_decode(file_get_contents("targets.json"), true);
 
 $targets = $targetsData['targets'];
 
@@ -137,6 +137,8 @@ function writeLog($message)
 $results = [];
 $combinedReport = "🔎 System Checker Report (Batch)\n\n";
 $separateMessage = $config['settings']['separate_message_per_domain'] ?? false;
+$showOnlyError = $config['settings']['show_only_error_notification'] ?? false;
+$hasErrors = false;
 
 // Ambil Config Telegram
 $botToken = $config['telegram']['bot_token'];
@@ -167,13 +169,19 @@ foreach ($targets as $target) {
     }
     $singleReport .= "Response: " . $result['response_time'] . " ms\n";
 
-    if ($separateMessage) {
-        // KIRIM LANGSUNG PER DOMAIN
-        $singleReport .= "\nTime: " . date("H:i:s");
-        sendTelegram($botToken, $chatId, $singleReport, $threadId);
-    } else {
-        // GABUNGKAN KE SATU PESAN BESAR
-        $combinedReport .= $singleReport . "--------------------------\n";
+    $isError = $result['status'] !== "UP";
+    $shouldNotify = !$showOnlyError || $isError;
+
+    if ($shouldNotify) {
+        if ($separateMessage) {
+            // KIRIM LANGSUNG PER DOMAIN
+            $singleReport .= "\nTime: " . date("H:i:s");
+            sendTelegram($botToken, $chatId, $singleReport, $threadId);
+        } else {
+            // GABUNGKAN KE SATU PESAN BESAR
+            $combinedReport .= $singleReport . "--------------------------\n";
+            $hasErrors = true;
+        }
     }
 
     // Jeda antar target (mikrodetik)
@@ -185,8 +193,10 @@ foreach ($targets as $target) {
 ========================= */
 
 if (!$separateMessage) {
-    $combinedReport .= "\nFinal Check: " . date("Y-m-d H:i:s");
-    sendTelegram($botToken, $chatId, $combinedReport, $threadId);
+    if (!$showOnlyError || $hasErrors) {
+        $combinedReport .= "\nFinal Check: " . date("Y-m-d H:i:s");
+        sendTelegram($botToken, $chatId, $combinedReport, $threadId);
+    }
 }
 
 /* =========================
@@ -264,7 +274,7 @@ $status = [
     "results" => $results
 ];
 
-file_put_contents("status_4d8e7f2a9b6c1d3.json", json_encode($status, JSON_PRETTY_PRINT));
+file_put_contents("status.json", json_encode($status, JSON_PRETTY_PRINT));
 
 echo "Checker executed successfully";
 
